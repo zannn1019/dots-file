@@ -59,6 +59,21 @@ Item { // Window
     height: targetWindowHeight
     opacity: windowData.monitor == widgetMonitorId ? 1 : 0.4
 
+    // Hover lift effect
+    transform: Scale {
+        origin.x: root.width / 2
+        origin.y: root.height / 2
+        xScale: root.hovered ? 1.06 : 1.0
+        yScale: root.hovered ? 1.06 : 1.0
+        Behavior on xScale {
+            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        }
+        Behavior on yScale {
+            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        }
+    }
+    z: hovered ? 100 : 0
+
     property real topLeftRadius
     property real topRightRadius
     property real bottomLeftRadius
@@ -102,11 +117,18 @@ Item { // Window
             topRightRadius: root.topRightRadius
             bottomRightRadius: root.bottomRightRadius
             bottomLeftRadius: root.bottomLeftRadius
-            color: pressed ? ColorUtils.transparentize(Appearance.colors.colLayer2Active, 0.5) : 
-                hovered ? ColorUtils.transparentize(Appearance.colors.colLayer2Hover, 0.7) : 
-                ColorUtils.transparentize(Appearance.colors.colLayer2)
-            border.color : ColorUtils.transparentize(Appearance.m3colors.m3outline, 0.88)
-            border.width : 1
+            color: pressed ? Qt.rgba(0, 0, 0, 0.3) : 
+                hovered ? Qt.rgba(0.25, 0.88, 0.82, 0.08) : 
+                Qt.rgba(0, 0, 0, 0.15)
+            border.color: hovered ? Qt.rgba(0.25, 0.88, 0.82, 0.6) :
+                          Qt.rgba(1, 1, 1, 0.08)
+            border.width: hovered ? 2 : 1
+            Behavior on color {
+                ColorAnimation { duration: 150 }
+            }
+            Behavior on border.color {
+                ColorAnimation { duration: 150 }
+            }
         }
 
         Image {

@@ -24,7 +24,7 @@ Item {
     property var windowAddresses: HyprlandData.addresses
     property var monitorData: HyprlandData.monitors.find(m => m.id === root.monitor?.id)
     property real scale: Config.options.overview.scale
-    property color activeBorderColor: Appearance.colors.colSecondary
+    property color activeBorderColor: "#40E0D0"
 
     property real workspaceImplicitWidth: (monitorData?.transform % 2 === 1) ? 
         ((monitor.height - monitorData?.reserved[0] - monitorData?.reserved[2]) * root.scale / monitor.scale) :
@@ -40,7 +40,7 @@ Item {
     property int workspaceZ: 0
     property int windowZ: 1
     property int windowDraggingZ: 99999
-    property real workspaceSpacing: 5
+    property real workspaceSpacing: 8
 
     property int draggingFromWorkspace: -1
     property int draggingTargetWorkspace: -1
@@ -71,14 +71,16 @@ Item {
     }
     Rectangle { // Background
         id: overviewBackground
-        property real padding: 10
+        property real padding: 12
         anchors.fill: parent
         anchors.margins: Appearance.sizes.elevationMargin
 
         implicitWidth: workspaceColumnLayout.implicitWidth + padding * 2
         implicitHeight: workspaceColumnLayout.implicitHeight + padding * 2
         radius: root.largeWorkspaceRadius + padding
-        color: Appearance.colors.colBackgroundSurfaceContainer
+        color: Qt.rgba(0.08, 0.09, 0.10, 0.85)
+        border.width: 1
+        border.color: Qt.rgba(1, 1, 1, 0.06)
 
         Column { // Workspaces
             id: workspaceColumnLayout
@@ -101,14 +103,49 @@ Item {
                             required property int index
                             property int colIndex: index
                             property int workspaceValue: root.workspaceGroup * root.workspacesShown + getWsInCell(row.index, colIndex)
-                            property color defaultWorkspaceColor: ColorUtils.mix(Appearance.colors.colBackgroundSurfaceContainer, Appearance.colors.colSurfaceContainerHigh, 0.8)
-                            property color hoveredWorkspaceColor: ColorUtils.mix(defaultWorkspaceColor, Appearance.colors.colLayer1Hover, 0.1)
-                            property color hoveredBorderColor: Appearance.colors.colLayer2Hover
+                            property color defaultWorkspaceColor: Qt.rgba(0.12, 0.13, 0.14, 0.9)
+                            property color hoveredWorkspaceColor: Qt.rgba(0.16, 0.18, 0.20, 0.95)
+                            property color hoveredBorderColor: "#40E0D0"
                             property bool hoveredWhileDragging: false
+                            property bool isHovered: workspaceHoverArea.containsMouse
+                            property bool isActive: workspace.workspaceValue === root.monitor.activeWorkspace?.id
+
+                            // Staggered entrance animation
+                            property int tileIndex: row.index * Config.options.overview.columns + colIndex
+                            scale: GlobalStates.overviewOpen ? 1.0 : 0.7
+                            opacity: GlobalStates.overviewOpen ? 1.0 : 0
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: 400
+                                    easing.type: Easing.OutBack
+                                    easing.overshoot: 1.0
+                                }
+                            }
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: 300
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            // Hover scale effect
+                            transform: Scale {
+                                origin.x: workspace.width / 2
+                                origin.y: workspace.height / 2
+                                xScale: workspace.isHovered ? 1.04 : 1.0
+                                yScale: workspace.isHovered ? 1.04 : 1.0
+                                Behavior on xScale {
+                                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                                }
+                                Behavior on yScale {
+                                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                                }
+                            }
 
                             implicitWidth: root.workspaceImplicitWidth
                             implicitHeight: root.workspaceImplicitHeight
-                            color: hoveredWhileDragging ? hoveredWorkspaceColor : defaultWorkspaceColor
+                            color: isHovered ? hoveredWorkspaceColor : 
+                                   hoveredWhileDragging ? hoveredWorkspaceColor : defaultWorkspaceColor
                             property bool workspaceAtLeft: colIndex === 0
                             property bool workspaceAtRight: colIndex === Config.options.overview.columns - 1
                             property bool workspaceAtTop: row.index === 0
@@ -117,20 +154,40 @@ Item {
                             topRightRadius: (workspaceAtRight && workspaceAtTop) ? root.largeWorkspaceRadius : root.smallWorkspaceRadius
                             bottomLeftRadius: (workspaceAtLeft && workspaceAtBottom) ? root.largeWorkspaceRadius : root.smallWorkspaceRadius
                             bottomRightRadius: (workspaceAtRight && workspaceAtBottom) ? root.largeWorkspaceRadius : root.smallWorkspaceRadius
-                            border.width: 2
-                            border.color: hoveredWhileDragging ? hoveredBorderColor : "transparent"
+                            border.width: hoveredWhileDragging ? 2 : (isHovered ? 1 : 0)
+                            border.color: hoveredWhileDragging ? hoveredBorderColor : (isHovered ? Qt.rgba(1, 1, 1, 0.12) : "transparent")
+
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
+                            }
+                            Behavior on border.color {
+                                ColorAnimation { duration: 150 }
+                            }
 
                             StyledText {
                                 anchors.centerIn: parent
                                 text: workspace.workspaceValue
                                 font {
                                     pixelSize: root.workspaceNumberSize * root.scale
-                                    weight: Font.DemiBold
+                                    weight: Font.Bold
                                     family: Appearance.font.family.expressive
                                 }
-                                color: ColorUtils.transparentize(Appearance.colors.colOnLayer1, 0.8)
+                                color: workspace.isActive ? Qt.rgba(0.25, 0.88, 0.82, 0.5) :
+                                       workspace.isHovered ? Qt.rgba(1, 1, 1, 0.25) :
+                                       Qt.rgba(1, 1, 1, 0.08)
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
+                                Behavior on color {
+                                    ColorAnimation { duration: 200 }
+                                }
+                            }
+
+                            // Hover detection for visual effects
+                            MouseArea {
+                                id: workspaceHoverArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.NoButton
                             }
 
                             MouseArea {
@@ -296,6 +353,27 @@ Item {
                             text: `${windowData?.title}\n[${windowData?.class}] ${windowData?.xwayland ? "[XWayland] " : ""}`
                         }
                     }
+                }
+            }
+
+            Rectangle { // Focused workspace indicator - outer glow
+                id: focusedWorkspaceGlow
+                property int rowIndex: getWsRow(monitor.activeWorkspace?.id)
+                property int colIndex: getWsColumn(monitor.activeWorkspace?.id)
+                x: (root.workspaceImplicitWidth + workspaceSpacing) * colIndex - 3
+                y: (root.workspaceImplicitHeight + workspaceSpacing) * rowIndex - 3
+                z: root.windowZ - 1
+                width: root.workspaceImplicitWidth + 6
+                height: root.workspaceImplicitHeight + 6
+                color: "transparent"
+                radius: root.largeWorkspaceRadius + 3
+                border.width: 3
+                border.color: Qt.rgba(0.25, 0.88, 0.82, 0.25)
+                Behavior on x {
+                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+                }
+                Behavior on y {
+                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
                 }
             }
 

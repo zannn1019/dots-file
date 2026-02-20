@@ -56,6 +56,7 @@ Item { // Bar content region
             left: parent.left
             right: middleSection.left
         }
+        
         implicitWidth: leftSectionRowLayout.implicitWidth
         implicitHeight: Appearance.sizes.baseBarHeight
 
@@ -79,17 +80,25 @@ Item { // Bar content region
 
         RowLayout {
             id: leftSectionRowLayout
-            anchors.fill: parent
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
             spacing: 10
-
-            LeftSidebarButton { // Left sidebar button
+            
+            // Left sidebar button
+            LeftSidebarButton { 
                 Layout.alignment: Qt.AlignVCenter
                 Layout.leftMargin: Appearance.rounding.screenRounding
                 colBackground: barLeftSideMouseArea.hovered ? Appearance.colors.colLayer1Hover : ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 1)
             }
+            
+            BatteryIndicator {
+                visible: (root.useShortenedForm < 2 && Battery.available)
+                Layout.alignment: Qt.AlignVCenter
+            }
 
             ActiveWindow {
-                visible: root.useShortenedForm === 0
+                visible: false
                 Layout.rightMargin: Appearance.rounding.screenRounding
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -109,42 +118,14 @@ Item { // Bar content region
         BarGroup {
             id: leftCenterGroup
             anchors.verticalCenter: parent.verticalCenter
+            padding: workspacesWidget.widgetPadding
             implicitWidth: root.centerSideModuleWidth
-
-            Resources {
-                alwaysShowAllResources: root.useShortenedForm === 2
-                Layout.fillWidth: root.useShortenedForm === 2
-            }
+            implicitHeight: rightCenterGroupContent.implicitHeight
 
             Media {
                 visible: root.useShortenedForm < 2
-                Layout.fillWidth: true
-            }
-        }
-
-        VerticalBarSeparator {
-            visible: Config.options?.bar.borderless
-        }
-
-        BarGroup {
-            id: middleCenterGroup
-            anchors.verticalCenter: parent.verticalCenter
-            padding: workspacesWidget.widgetPadding
-
-            Workspaces {
-                id: workspacesWidget
-                Layout.fillHeight: true
-                MouseArea {
-                    // Right-click to toggle overview
-                    anchors.fill: parent
-                    acceptedButtons: Qt.RightButton
-
-                    onPressed: event => {
-                        if (event.button === Qt.RightButton) {
-                            GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
-                        }
-                    }
-                }
+                Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+                Layout.maximumWidth: 250
             }
         }
 
@@ -173,16 +154,39 @@ Item { // Bar content region
                 }
 
                 UtilButtons {
-                    visible: (Config.options.bar.verbose && root.useShortenedForm === 0)
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                BatteryIndicator {
-                    visible: (root.useShortenedForm < 2 && Battery.available)
+                    visible: false
                     Layout.alignment: Qt.AlignVCenter
                 }
             }
         }
+        
+
+        VerticalBarSeparator {
+            visible: Config.options?.bar.borderless
+        }
+
+        BarGroup {
+            id: middleCenterGroup
+            anchors.verticalCenter: parent.verticalCenter
+            padding: workspacesWidget.widgetPadding
+
+            Workspaces {
+                id: workspacesWidget
+                Layout.fillHeight: true
+                MouseArea {
+                    // Right-click to toggle overview
+                    anchors.fill: parent
+                    acceptedButtons: Qt.RightButton
+
+                    onPressed: event => {
+                        if (event.button === Qt.RightButton) {
+                            GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
+                        }
+                    }
+                }
+            }
+        }
+        
     }
 
     FocusedScrollMouseArea { // Right side | scroll to change volume

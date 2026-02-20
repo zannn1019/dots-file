@@ -87,6 +87,19 @@ Scope {
                 searchWidget.focusFirstItem();
             }
 
+            // Background dim overlay
+            Rectangle {
+                anchors.fill: parent
+                color: "#000000"
+                opacity: GlobalStates.overviewOpen ? 0.45 : 0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 300
+                        easing.type: Easing.OutCubic
+                    }
+                }
+            }
+
             Column {
                 id: columnLayout
                 visible: GlobalStates.overviewOpen
@@ -95,6 +108,24 @@ Scope {
                     top: parent.top
                 }
                 spacing: -8
+
+                // Scale + opacity entrance animation
+                scale: GlobalStates.overviewOpen ? 1.0 : 0.92
+                opacity: GlobalStates.overviewOpen ? 1.0 : 0
+                transformOrigin: Item.Top
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: 350
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 0.8
+                    }
+                }
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 250
+                        easing.type: Easing.OutCubic
+                    }
+                }
 
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape) {

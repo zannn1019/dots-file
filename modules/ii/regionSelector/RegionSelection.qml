@@ -40,11 +40,11 @@ PanelWindow {
     property string screenshotDir: Directories.screenshotTemp
     property string imageSearchEngineBaseUrl: Config.options.search.imageSearch.imageSearchEngineBaseUrl
     property string fileUploadApiEndpoint: "https://uguu.se/upload"
-    property color overlayColor: "#88111111"
+    property color overlayColor: "#99000000"
     property color brightText: Appearance.m3colors.darkmode ? Appearance.colors.colOnLayer0 : Appearance.colors.colLayer0
     property color brightSecondary: Appearance.m3colors.darkmode ? Appearance.colors.colSecondary : Appearance.colors.colOnSecondary
     property color brightTertiary: Appearance.m3colors.darkmode ? Appearance.colors.colTertiary : Qt.lighter(Appearance.colors.colPrimary)
-    property color selectionBorderColor: ColorUtils.mix(brightText, brightSecondary, 0.5)
+    property color selectionBorderColor: "#40E0D0"
     property color selectionFillColor: "#33ffffff"
     property color windowBorderColor: brightSecondary
     property color windowFillColor: ColorUtils.transparentize(windowBorderColor, 0.85)
