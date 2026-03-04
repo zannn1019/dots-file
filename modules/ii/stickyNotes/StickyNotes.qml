@@ -132,7 +132,7 @@ Scope {
                         isSelected: root.selectedNoteId === modelData.id
 
                         onSelectRequested: (id) => root.selectNote(id)
-                        onTitleEdited: (id, val) => { for (let i = 0; i < root.notes.length; i++) { if (root.notes[i].id === id) { root.notes[i].title = val; break } } }
+                        onTitleEdited: (id, val) => { for (let i = 0; i < root.notes.length; i++) { if (root.notes[i].id === id) { root.notes[i].title = val; break } } root.saveNotes() }
                         onBodyEdited: (id, val) => { for (let i = 0; i < root.notes.length; i++) { if (root.notes[i].id === id) { root.notes[i].body = val; break } } root.saveNotes() }
                         onColorChanged: (id, c) => root.setNoteColor(id, c)
                         onStickerChanged: (id, s) => root.setNoteSticker(id, s)

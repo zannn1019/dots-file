@@ -46,8 +46,9 @@ LockScreen {
             property int horizontalSqueeze: modelData.width * 0.2
             onShouldPushChanged: {
                 if (shouldPush) {
-                    root.saveWindowPositionAndTile();
-                    Quickshell.execDetached(["bash", "-c", `hyprctl keyword monitor ${targetMonitorName}, addreserved, ${verticalMovementDistance}, ${-verticalMovementDistance}, ${horizontalSqueeze}, ${horizontalSqueeze}`]);
+                    // Disabled: addreserved crashes Hyprland 0.53+ (breaking change)
+                    // root.saveWindowPositionAndTile();
+                    // Quickshell.execDetached(["bash", "-c", `hyprctl keyword monitor ${targetMonitorName}, addreserved, ${verticalMovementDistance}, ${-verticalMovementDistance}, ${horizontalSqueeze}, ${horizontalSqueeze}`]);
                 } else {
                     Quickshell.execDetached(["bash", "-c", `hyprctl keyword monitor ${targetMonitorName}, addreserved, 0, 0, 0, 0`]);
                     root.restoreWindowPositionAndTile();

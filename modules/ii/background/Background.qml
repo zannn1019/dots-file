@@ -129,8 +129,7 @@ Variants {
             // Wallpaper
             StyledImage {
                 id: wallpaper
-                visible: opacity > 0 && !blurLoader.active
-                opacity: (status === Image.Ready && !bgRoot.wallpaperIsVideo) ? 1 : 0
+                visible: !blurLoader.active
                 cache: false
                 smooth: false
                 // Range = groups that workspaces span on
@@ -160,6 +159,7 @@ Variants {
                 x: -(bgRoot.movableXSpace) - (effectiveValueX - 0.5) * 2 * bgRoot.movableXSpace
                 y: -(bgRoot.movableYSpace) - (effectiveValueY - 0.5) * 2 * bgRoot.movableYSpace
                 source: bgRoot.wallpaperSafetyTriggered ? "" : bgRoot.wallpaperPath
+                opacity: bgRoot.wallpaperIsVideo ? 0 : 1
                 fillMode: Image.PreserveAspectCrop
                 Behavior on x {
                     NumberAnimation {

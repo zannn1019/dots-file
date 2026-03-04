@@ -11,6 +11,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHELL_CONFIG_FILE="$XDG_CONFIG_HOME/illogical-impulse/config.json"
 MATUGEN_DIR="$XDG_CONFIG_HOME/matugen"
 terminalscheme="$SCRIPT_DIR/terminal/scheme-base.json"
+SWITCHWALL_LOG="/tmp/switchwall.log"
+log() { echo "[$(date '+%H:%M:%S.%3N')] $*" | tee -a "$SWITCHWALL_LOG"; }
 
 handle_kde_material_you_colors() {
     # Check if Qt app theming is enabled in config
@@ -112,6 +114,8 @@ is_video() {
 }
 
 kill_existing_mpvpaper() {
+    log "KILLING mpvpaper (caller: ${FUNCNAME[1]}, args were: $*)"
+    log "  Stack: $(caller 0) -> $(caller 1 2>/dev/null)"
     pkill -f -9 mpvpaper || true
 }
 
@@ -123,6 +127,7 @@ create_restore_script() {
 # Time: $(date)
 
 pkill -f -9 mpvpaper
+pkill -x swww-daemon || true
 
 for monitor in \$(hyprctl monitors -j | jq -r '.[] | .name'); do
     mpvpaper -o "$VIDEO_OPTS" "\$monitor" "$video_path" &
@@ -161,6 +166,7 @@ switch() {
     type_flag="$3"
     color_flag="$4"
     color="$5"
+    noswitch_flag="$6"
 
     # Start Gemini auto-categorization if enabled
     aiStylingEnabled=$(jq -r '.background.clock.cookie.aiStyling' "$SHELL_CONFIG_FILE")
@@ -185,7 +191,6 @@ switch() {
         fi
 
         check_and_prompt_upscale "$imgpath" &
-        kill_existing_mpvpaper
 
         if is_video "$imgpath"; then
             mkdir -p "$THUMBNAIL_DIR"
@@ -218,17 +223,23 @@ switch() {
             # Set wallpaper path
             set_wallpaper_path "$imgpath"
 
-            # Set video wallpaper
-            local video_path="$imgpath"
-            monitors=$(hyprctl monitors -j | jq -r '.[] | .name')
-            for monitor in $monitors; do
-                mpvpaper -o "$VIDEO_OPTS" "$monitor" "$video_path" &
-                sleep 0.1
-            done
+            # Only (re)start mpvpaper when NOT a --noswitch call (color-only re-run).
+            # --noswitch is triggered by Quickshell detecting color file changes, so we
+            # must not kill the running video just to restart it with the same file.
+            if [[ -z "$noswitch_flag" ]]; then
+                kill_existing_mpvpaper
+                pkill -x swww-daemon || true
+                local video_path="$imgpath"
+                monitors=$(hyprctl monitors -j | jq -r '.[] | .name')
+                for monitor in $monitors; do
+                    mpvpaper -o "$VIDEO_OPTS" "$monitor" "$video_path" &
+                    sleep 0.1
+                done
+            fi
 
-            # Extract first frame for color generation
+            # Extract first frame for color generation (skip 1s to avoid blank fade-in frames)
             thumbnail="$THUMBNAIL_DIR/$(basename "$imgpath").jpg"
-            ffmpeg -y -i "$imgpath" -vframes 1 "$thumbnail" 2>/dev/null
+            ffmpeg -y -ss 00:00:01 -i "$imgpath" -vframes 1 "$thumbnail" 2>/dev/null
 
             # Set thumbnail path
             set_thumbnail_path "$thumbnail"
@@ -243,6 +254,8 @@ switch() {
                 exit 1
             fi
         else
+            # It's a static image — kill any running video wallpaper first
+            kill_existing_mpvpaper
             matugen_args=(image "$imgpath")
             generate_colors_material_args=(--path "$imgpath")
             # Update wallpaper path in config
@@ -309,6 +322,7 @@ switch() {
 }
 
 main() {
+    log "=== switchwall.sh invoked PID=$$ ARGS: $* ==="
     imgpath=""
     mode_flag=""
     type_flag=""
@@ -430,7 +444,7 @@ main() {
         fi
     fi
 
-    switch "$imgpath" "$mode_flag" "$type_flag" "$color_flag" "$color"
+    switch "$imgpath" "$mode_flag" "$type_flag" "$color_flag" "$color" "$noswitch_flag"
 }
 
 main "$@"
