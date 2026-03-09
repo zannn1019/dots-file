@@ -95,12 +95,23 @@ Scope {
         surface: root.sessionLockSurface
     }
 
+    // Screenshot taken just before the lockscreen surface appears
+    Process {
+        id: preLockShot
+        onExited: {
+            GlobalStates.screenLocked = true;
+        }
+    }
+
     function lock() {
         if (Config.options.lock.useHyprlock) {
             Quickshell.execDetached(["bash", "-c", "pidof hyprlock || hyprlock"]);
             return;
         }
-        GlobalStates.screenLocked = true;
+        // Capture the current screen to use as blurred lockscreen background.
+        // grim with no args captures all outputs merged; -t png for lossless.
+        preLockShot.command = ["bash", "-c", "grim -t png /tmp/qs-lockbg.png"];
+        preLockShot.running = true;
     }
 
     IpcHandler {
