@@ -120,6 +120,7 @@ ShellRoot {
     TaskManagerPopup {
         id: taskManagerPopup
     }
+    
 
     PanelLoader { identifier: "wActionCenter"; component: WaffleActionCenter {} }
     PanelLoader { identifier: "wBar"; component: WaffleBar {} }

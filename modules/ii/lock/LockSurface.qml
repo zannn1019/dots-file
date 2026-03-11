@@ -1074,6 +1074,9 @@ Item {
             Rectangle {
                 id: pwPill
 
+                property string fakePasswordStr: ""
+                readonly property string randomChars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*"
+
                 radius: height / 2
                 color: "transparent"
                 border.width: 1
@@ -1085,8 +1088,6 @@ Item {
                     fill: parent
                 }
 
-                // Frosted glass layers — stacked from back to front
-                // Layer 1: deep translucent fill
                 Rectangle {
                     anchors.fill: parent
                     radius: parent.radius
@@ -1094,14 +1095,12 @@ Item {
                     z: -2
                 }
 
-                // Layer 2: faint blue-white sheen (simulates scattered light)
                 Rectangle {
                     anchors.fill: parent
                     anchors.margins: 1
                     radius: parent.radius - 1
                     color: "transparent"
 
-                    // Top highlight strip
                     Rectangle {
                         anchors.top: parent.top
                         anchors.left: parent.left
@@ -1172,12 +1171,34 @@ Item {
 
                     font.pixelSize: Appearance.font.pixelSize.small
                     enabled: !root.context.unlockInProgress
-                    echoMode: TextInput.Password
+                    echoMode: TextInput.Normal
                     inputMethodHints: Qt.ImhSensitiveData
+                    color: "#00000000"
+                    selectedTextColor: "#00000000"
+                    selectionColor: "transparent"
                     clip: true
                     colBackground: "transparent"
-                    placeholderText: Translation.tr("Enter password…")
-                    onTextChanged: root.context.currentText = this.text
+                    placeholderText: Translation.tr("Guess")
+                    // onTextChanged: root.context.currentText = this.text
+                    onTextChanged: {
+                        root.context.currentText = this.text;
+                        if (this.text.length === 0) {
+                            pwPill.fakePasswordStr = "";
+                        } else if (this.text.length > pwPill.fakePasswordStr.length) {
+                            let diff = this.text.length - pwPill.fakePasswordStr.length;
+                            for (let i = 0; i < diff; i++) {
+                                pwPill.fakePasswordStr += pwPill.randomChars.charAt(Math.floor(Math.random() * pwPill.randomChars.length));
+                            }
+                        } else if (this.text.length < pwPill.fakePasswordStr.length) {
+                            pwPill.fakePasswordStr = pwPill.fakePasswordStr.substring(0, this.text.length);
+                        } else if (this.text !== "" && this.text.length === pwPill.fakePasswordStr.length) {
+                            let newFake = "";
+                            for (let i = 0; i < this.text.length; i++) {
+                                newFake += pwPill.randomChars.charAt(Math.floor(Math.random() * pwPill.randomChars.length));
+                            }
+                            pwPill.fakePasswordStr = newFake;
+                        }
+                    }
                     onAccepted: root.animateAndUnlock(ctrlHeld)
                     Keys.onPressed: (event) => {
                         root.context.resetClearTimer();
@@ -1191,10 +1212,21 @@ Item {
 
                     Connections {
                         function onCurrentTextChanged() {
-                            passwordBox.text = root.context.currentText;
+                            if (passwordBox.text !== root.context.currentText)
+                                passwordBox.text = root.context.currentText;
+
                         }
 
                         target: root.context
+                    }
+
+                    Text {
+                        anchors.fill: parent
+                        verticalAlignment: Text.AlignVCenter
+                        font: passwordBox.font
+                        color: Qt.rgba(0.9, 0.9, 0.9, 1)
+                        text: pwPill.fakePasswordStr
+                        z: -1
                     }
 
                 }

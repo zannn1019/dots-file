@@ -69,4 +69,26 @@ Singleton {
             screenZoom = Math.max(screenZoom - 0.4, 1)
         } 
 	}
+
+    function debugLog(message, title = "Debug Log") {
+        let strMsg = String(message);
+        if (typeof message === "object" && message !== null) {
+            try {
+                let jsonStr = JSON.stringify(message, null, 2);
+                if (jsonStr !== undefined) {
+                    strMsg = jsonStr;
+                }
+            } catch (e) {
+                // fall back to String(message)
+            }
+        } else if (message === undefined) {
+            strMsg = "undefined";
+        }
+        
+        // Escape characters that break Pango markup in notification daemons (like Dunst/Mako)
+        let safeMsg = String(strMsg).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        
+        Quickshell.execDetached(["notify-send", "-a", "QML Debug", String(title), safeMsg]);
+        console.log("[" + title + "]", strMsg);
+    }
 }

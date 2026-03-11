@@ -173,6 +173,7 @@ Scope {
 
     // Launch an app, record selection for search ranking
     function launchApp(appExec, isTerminal, appName) {
+        console.log("hello world")
         if (appName)
             recordSelection(appName);
 
@@ -250,7 +251,7 @@ Scope {
     Process {
         id: buildCache
 
-        command: ["python3", appLauncher.scriptsDir + "/python/build-app-cache"]
+        command: ["python3", PiixidentConfig.scriptsDir + "/python/build-app-cache"]
         running: false
         onRunningChanged: {
             if (running) {
@@ -262,7 +263,8 @@ Scope {
         onExited: {
             appLauncher.cacheLoading = false;
             appModel.clear();
-            loadApps.running = true;
+            loadApps.running = false; // Reset state first
+            loadApps.running = true;  // Trigger reload
         }
 
         stdout: SplitParser {
