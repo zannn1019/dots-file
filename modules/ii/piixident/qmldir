@@ -1,0 +1,2 @@
+module qs.modules.ii.piixident
+singleton PiixidentConfig 1.0 PiixidentConfig.qml

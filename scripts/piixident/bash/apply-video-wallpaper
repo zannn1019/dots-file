@@ -1,0 +1,18 @@
+#!/bin/bash
+# Apply a video wallpaper using ii's switchwall.sh
+video_path="$1"
+
+if [ -z "$video_path" ]; then
+    echo "Usage: $0 <video_path>"
+    exit 1
+fi
+
+# Use ii's wallpaper switching script
+switchwall_script="$HOME/.config/quickshell/ii/scripts/colors/switchwall.sh"
+
+if [ -f "$switchwall_script" ]; then
+    "$switchwall_script" --image "$video_path"
+else
+    echo "Error: switchwall.sh not found at $switchwall_script"
+    exit 1
+fi

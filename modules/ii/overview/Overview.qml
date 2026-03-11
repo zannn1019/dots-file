@@ -2,6 +2,7 @@ import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.ii.piixident
 import Qt.labs.synchronizer
 import QtQuick
 import QtQuick.Controls
@@ -14,6 +15,35 @@ import Quickshell.Hyprland
 Scope {
     id: overviewScope
     property bool dontAutoCancelSearch: false
+    
+    // Toggle between traditional search and piixident app launcher
+    property bool usePiixidentLauncher: false
+    
+    // Color adapter for piixident launcher
+    property var piixidentColors: ({
+        surfaceContainer: Qt.color(Appearance.m3colors.m3surfaceContainer),
+        surfaceVariant: Qt.color(Appearance.m3colors.m3surfaceVariant),
+        surface: Qt.color(Appearance.m3colors.m3surface),
+        primary: Qt.color(Appearance.m3colors.m3primary),
+        primaryText: Qt.color(Appearance.m3colors.m3onPrimary),
+        tertiary: Qt.color(Appearance.m3colors.m3tertiary)
+    })
+    
+    // Piixident app launcher (standalone window)
+    AppLauncherParallel_Piixident {
+        showing: overviewScope.usePiixidentLauncher && GlobalStates.overviewOpen
+        colors: overviewScope.piixidentColors
+        fontIcons: "Material Symbols Rounded"
+        fontBody: "Rubik"
+        
+        Component.onCompleted: {
+            console.log("[Overview] AppLauncher created. usePiixident:", overviewScope.usePiixidentLauncher)
+        }
+        
+        onShowingChanged: {
+            console.log("[Overview] AppLauncher showing changed:", showing, "overviewOpen:", GlobalStates.overviewOpen)
+        }
+    }
     Variants {
         id: overviewVariants
         model: Quickshell.screens
@@ -24,7 +54,7 @@ Scope {
             readonly property HyprlandMonitor monitor: Hyprland.monitorFor(root.screen)
             property bool monitorIsFocused: (Hyprland.focusedMonitor?.id == monitor?.id)
             screen: modelData
-            visible: GlobalStates.overviewOpen
+            visible: GlobalStates.overviewOpen && !overviewScope.usePiixidentLauncher
 
             WlrLayershell.namespace: "quickshell:overview"
             WlrLayershell.layer: WlrLayer.Overlay
@@ -139,9 +169,11 @@ Scope {
                     }
                 }
 
+                // Traditional search widget
                 SearchWidget {
                     id: searchWidget
                     anchors.horizontalCenter: parent.horizontalCenter
+                    visible: !overviewScope.usePiixidentLauncher && GlobalStates.overviewOpen
                     Synchronizer on searchingText {
                         property alias source: root.searchingText
                     }
@@ -150,10 +182,10 @@ Scope {
                 Loader {
                     id: overviewLoader
                     anchors.horizontalCenter: parent.horizontalCenter
-                    active: GlobalStates.overviewOpen && (Config?.options.overview.enable ?? true)
+                    active: GlobalStates.overviewOpen && (Config?.options.overview.enable ?? true) && !overviewScope.usePiixidentLauncher
                     sourceComponent: OverviewWidget {
                         panelWindow: root
-                        visible: (root.searchingText == "")
+                        visible: (root.searchingText == "") && !overviewScope.usePiixidentLauncher
                     }
                 }
             }

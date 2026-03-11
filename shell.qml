@@ -59,6 +59,22 @@ ShellRoot {
         Wallpapers.load()
         Updates.load()
     }
+    
+    // Connect piixident wallpaper picker to the original WallpaperSelector
+    Connections {
+        target: wallpaperPickerLoader
+        function onLoaded() {
+            // Find the original WallpaperSelector Scope and inject the piixident instance
+            for (let i = 0; i < root.children.length; i++) {
+                let child = root.children[i]
+                if (child.objectName === "iiWallpaperSelector" && child.item) {
+                    child.item.wallpaperPickerInstance = wallpaperPickerLoader.item
+                    console.log("Connected piixident wallpaper picker to original WallpaperSelector")
+                    break
+                }
+            }
+        }
+    }
 
     // Load enabled stuff
     // Well, these loaders only *allow* them to be loaded, to always load or not is defined in each component
@@ -83,7 +99,22 @@ ShellRoot {
     PanelLoader { identifier: "iiSidebarRight"; component: SidebarRight {} }
     PanelLoader { identifier: "iiStickyNotes"; component: StickyNotes {} }
     PanelLoader { identifier: "iiVerticalBar"; extraCondition: Config.options.bar.vertical; component: VerticalBar {} }
-    PanelLoader { identifier: "iiWallpaperSelector"; component: WallpaperSelector {} }
+    PanelLoader { objectName: "iiWallpaperSelector"; identifier: "iiWallpaperSelector"; component: WallpaperSelector {} }
+
+    // Piixident Components (always loaded, controlled by their `open` property)
+    Loader {
+        id: wallpaperPickerLoader
+        active: true
+        source: "modules/ii/wallpaperSelector/PiixidentWallpaperSelector.qml"
+        onLoaded: item.objectName = "wallpaperPicker"
+    }
+    
+    Loader {
+        id: windowSwitcherLoader
+        active: true
+        source: "modules/ii/overview/PiixidentWindowSwitcher.qml"
+        onLoaded: item.objectName = "windowSwitcher"
+    }
 
     PanelLoader { identifier: "wActionCenter"; component: WaffleActionCenter {} }
     PanelLoader { identifier: "wBar"; component: WaffleBar {} }

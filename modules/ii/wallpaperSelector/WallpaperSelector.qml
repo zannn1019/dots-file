@@ -3,6 +3,7 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.modules.common.functions
+import qs.modules.ii.piixident
 import QtQuick
 import QtQuick.Controls
 import Quickshell
@@ -13,9 +14,28 @@ import Quickshell.Hyprland
 Scope {
     id: root
 
+    // Color adapter: Convert ii colors to piixident format
+    property var piixidentColors: ({
+        surfaceContainer: Qt.color(Appearance.m3colors.m3surfaceContainer),
+        primary: Qt.color(Appearance.m3colors.m3primary),
+        onSurface: Qt.color(Appearance.m3colors.m3onSurface),
+        surface: Qt.color(Appearance.m3colors.m3surface),
+        onSurfaceVariant: Qt.color(Appearance.m3colors.m3onSurfaceVariant)
+    })
+
+    // Use piixident wallpaper selector directly
+    WallpaperSelector_Piixident {
+        id: piixidentSelector
+        colors: piixidentColors
+        onWallpaperChanged: {
+            console.log("Piixident wallpaper changed")
+        }
+    }
+
     Loader {
         id: wallpaperSelectorLoader
-        active: GlobalStates.wallpaperSelectorOpen
+        // DISABLED: Using Piixident wallpaper selector instead
+        active: false // was: GlobalStates.wallpaperSelectorOpen
 
         sourceComponent: PanelWindow {
             id: panelWindow
@@ -62,7 +82,8 @@ Scope {
             Wallpapers.openFallbackPicker(Appearance.m3colors.darkmode);
             return;
         }
-        GlobalStates.wallpaperSelectorOpen = !GlobalStates.wallpaperSelectorOpen
+        // USE PIIXIDENT SELECTOR
+        piixidentSelector.showing = !piixidentSelector.showing
     }
 
     IpcHandler {

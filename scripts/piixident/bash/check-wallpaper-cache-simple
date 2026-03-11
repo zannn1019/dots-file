@@ -1,0 +1,11 @@
+#!/bin/bash
+# Simple cache checker that just verifies the cache exists
+CACHE_FILE="$HOME/.cache/quickshell/ii/wallpaper/list.jsonl"
+
+if [ -f "$CACHE_FILE" ]; then
+    echo "cached"
+    exit 0
+else
+    echo "Cache file missing: $CACHE_FILE" >&2
+    exit 1
+fi

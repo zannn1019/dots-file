@@ -1,0 +1,346 @@
+════════════════════════════════════════════════════════════════════════════
+  COVER/STACKING TRANSITION FLOW DIAGRAM
+════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  USER ACTION: Click Workspace 2 (currently on Workspace 1)             │
+└─────────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+        ┌─────────────────────────────────────────────────┐
+        │  State Change: currentWorkspaceId = 2           │
+        │  Previous: 1 → Current: 2                       │
+        └─────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+        ┌─────────────────────────────────────────────────┐
+        │  Z-Index Update: nextZIndex++ (now 101)         │
+        └─────────────────────────────────────────────────┘
+                                  │
+                    ┌─────────────┴─────────────┐
+                    │                           │
+                    ▼                           ▼
+        ┏━━━━━━━━━━━━━━━━━━━━┓      ┏━━━━━━━━━━━━━━━━━━━━┓
+        ┃  WORKSPACE 1       ┃      ┃  WORKSPACE 2       ┃
+        ┃  (Exiting)         ┃      ┃  (Entering)        ┃
+        ┗━━━━━━━━━━━━━━━━━━━━┛      ┗━━━━━━━━━━━━━━━━━━━━┛
+                    │                           │
+                    ▼                           ▼
+        ┌─────────────────────┐      ┌─────────────────────┐
+        │ State: "exiting"    │      │ State: "entering"   │
+        │ targetX: -20%       │      │ targetX: 0          │
+        │ targetOpacity: 0.5  │      │ targetOpacity: 1.0  │
+        │ z: 50 (stays low)   │      │ z: 101 (on top!)    │
+        └─────────────────────┘      └─────────────────────┘
+                    │                           │
+                    ▼                           ▼
+        ┌─────────────────────┐      ┌─────────────────────┐
+        │ SpringAnimation     │      │ SpringAnimation     │
+        │ x: 0 → -20%         │      │ x: 100% → 0         │
+        │ spring: 3.5         │      │ spring: 3.5         │
+        │ damping: 0.25       │      │ damping: 0.25       │
+        └─────────────────────┘      └─────────────────────┘
+                    │                           │
+                    └─────────────┬─────────────┘
+                                  ▼
+                    ╔═════════════════════════════╗
+                    ║  VISUAL RESULT (~600-800ms) ║
+                    ╚═════════════════════════════╝
+
+
+════════════════════════════════════════════════════════════════════════════
+  FRAME-BY-FRAME BREAKDOWN
+════════════════════════════════════════════════════════════════════════════
+
+Frame 1 (t=0ms): Initial State
+┌────────────────────────────────────┐
+│                                    │
+│      [Workspace 1]                 │
+│      ████████████                  │
+│      z=50, x=0                     │
+│      opacity=1.0                   │
+│                                    │
+└────────────────────────────────────┘
+
+Frame 2 (t=0ms, just triggered): Preparation
+┌────────────────────────────────────────────────────────────┐
+│                                    │                       │
+│      [Workspace 1]                 │   [Workspace 2]      │
+│      ████████████                  │   ████████████       │
+│      z=50, x=0                     │   z=101, x=800px →   │
+│      opacity=1.0                   │   opacity=1.0        │
+│                                    │   (off-screen)       │
+└────────────────────────────────────────────────────────────┘
+
+Frame 3 (t=100ms): Spring acceleration
+┌────────────────────────────────────────────────────────────┐
+│                                    │                       │
+│    [WS 1]                          │     [Workspace 2]    │
+│    ██████────                      │     ████████████     │
+│    z=50, x=-40px                   │     z=101, x=500px   │
+│    opacity=0.8                     │     opacity=1.0      │
+│    ←                               │          ←           │
+└────────────────────────────────────────────────────────────┘
+
+Frame 4 (t=300ms): Peak velocity
+┌────────────────────────────────────────────────────────────┐
+│                                    │                       │
+│  [W1]                              │  [Workspace 2]       │
+│  ███────                           │  ████████████        │
+│  z=50, x=-120px                    │  z=101, x=150px      │
+│  opacity=0.55                      │  opacity=1.0         │
+│  ←                                 │       ←              │
+└────────────────────────────────────────────────────────────┘
+     ▲                                            ▲
+     │                                            │
+  Exiting partially                      Entering (covering)
+
+Frame 5 (t=600ms): Approaching rest (with overshoot)
+┌────────────────────────────────────────────────────────────┐
+│                                    │                       │
+│ [W1]                               │ [Workspace 2]        │
+│ ██─────                            │ ████████████         │
+│ z=50, x=-165px                     │ z=101, x=-10px       │
+│ opacity=0.5                        │ opacity=1.0          │
+│ (slight overshoot)                 │ (slight overshoot)   │
+└────────────────────────────────────────────────────────────┘
+
+Frame 6 (t=800ms): Final settle
+┌────────────────────────────────────────────────────────────┐
+│                                    │                       │
+│ [W1]                               │ [Workspace 2]        │
+│ ██─────                            │ ████████████         │
+│ z=50, x=-160px (20%)               │ z=101, x=0           │
+│ opacity=0.5                        │ opacity=1.0          │
+│ (at rest, faded)                   │ (at rest, on top)    │
+└────────────────────────────────────────────────────────────┘
+       ▲                                         ▲
+       │                                         │
+   Partially visible                      Fully covering
+   behind new workspace                   (transition complete)
+
+
+════════════════════════════════════════════════════════════════════════════
+  PARALLELOGRAM "EATING EDGE" EFFECT
+════════════════════════════════════════════════════════════════════════════
+
+Top View of Transition (Frame 4: Mid-transition)
+
+Workspace 1 (exiting):              Workspace 2 (entering):
+┌────────────┐                      ╔═════════════════╗
+│            │                      ║                 ║
+│   WS 1     │                      ║      WS 2       ║
+│            │    ◄─────────────    ║                 ║
+│  (fading)  │    Sliding over      ║   (on top)      ║
+└────────────┘                      ╚═════════════════╝
+                                         ▲
+                                         │
+                                    Inverted corner
+                                    (20px scoop)
+                                    "eats" the edge
+
+Side View (showing z-index layers):
+
+     Layer 3 (z=101)  ▶  [Workspace 2] ◀─────┐
+                                              │  Slides from right
+     Layer 2 (z=50)   ▶  [Workspace 1] ◀─┐   │
+                                          │   │
+     Layer 1 (z=0)    ▶  [Other WS]      │   │
+                                          │   │
+                                          │   │
+                                          ▼   ▼
+                                    Exiting   Entering
+                                    (stays    (covers)
+                                     below)
+
+
+════════════════════════════════════════════════════════════════════════════
+  INVERTED CORNER DETAIL
+════════════════════════════════════════════════════════════════════════════
+
+Standard Corner:           Inverted Corner (Scoop):
+┌─────                     ╔─────
+│                          ╚═╗
+│                            ║
+│                            ║
+│                            ▼
+                         Creates "negative space"
+                         that appears to "eat" the
+                         edge of the workspace behind
+
+During transition, as WS2 slides over WS1:
+
+   WS1 edge ──►  [█]
+                  ║  ◄── WS2 inverted corner
+                  ╚═══╗
+                      ║  ◄── Appears to consume WS1
+                      ▼
+
+The scoop (quadratic bezier curve) at the corner of the entering workspace
+creates a visual effect where it seems to "bite into" or "eat" the edge
+of the exiting workspace as it slides over.
+
+
+════════════════════════════════════════════════════════════════════════════
+  STATE MACHINE DIAGRAM
+════════════════════════════════════════════════════════════════════════════
+
+                    ┌────────────────┐
+                    │   INACTIVE     │
+                    │  x=0, z=0      │
+                    │  opacity=0     │
+                    └────────┬───────┘
+                             │
+              User selects   │   User navigates away
+              this workspace │   from this workspace
+                             │
+                    ┌────────▼───────┐
+                    │    ENTERING    │
+        ┌───────────│  x:100%→0      │
+        │           │  z=nextZ++     │
+        │           │  opacity=1.0   │
+        │           └────────┬───────┘
+        │                    │
+        │         Spring     │   ~800ms later
+        │         animation  │
+        │                    │
+        │           ┌────────▼───────┐
+        │           │     ACTIVE     │
+        │  Another  │  x=0, z=50     │──────┐
+        │  WS       │  opacity=1.0   │      │
+        │  selected └────────┬───────┘      │
+        │                    │               │
+        │          User      │               │ Stays active
+        │          clicks    │               │
+        │          away      │               │
+        │                    │               │
+        │           ┌────────▼───────┐       │
+        └──────────►│    EXITING     │       │
+                    │  x:0→-20%      │       │
+                    │  z=50 (same)   │       │
+                    │  opacity:1→0.5 │       │
+                    └────────┬───────┘       │
+                             │               │
+              Spring         │               │
+              animation      │               │
+                             │               │
+                    ┌────────▼───────┐       │
+                    │   INACTIVE     │       │
+                    │  (behind new)  │       │
+                    └────────────────┘       │
+                             ▲               │
+                             └───────────────┘
+
+
+════════════════════════════════════════════════════════════════════════════
+  SPRING PHYSICS VISUALIZATION
+════════════════════════════════════════════════════════════════════════════
+
+Position over time (spring: 3.5, damping: 0.25):
+
+Start (800px) ►────────────────────────────────────► Target (0px)
+
+ 800│●                                               
+    │  ╲                                            
+ 600│    ╲                                          
+    │      ╲                                        
+ 400│        ╲                                      
+    │          ╲                                    
+ 200│            ╲___                               
+    │                ╲___                           
+   0│                    ●══●─●●●                   
+ -50│                          ╲_/  ◄── Overshoot  
+    │                                               
+    └──┬────┬────┬────┬────┬────┬────┬────►       
+       0   100  200  300  400  500  600  800ms     
+
+Legend:
+  ● = Position at time
+  ══ = Settling oscillation
+  ╲  = Fast movement (high velocity)
+
+Velocity over time:
+
+High│  ●╲                                           
+    │    ╲                                          
+ Med│      ╲                                        
+    │        ╲___                                   
+ Low│            ───___                             
+    │                  ──●                          
+   0│─────────────────────●───●─●──────►           
+    │                          ╲ ╱                  
+Neg │                           ●  ◄── Bounce back  
+    └──┬────┬────┬────┬────┬────┬────┬────►       
+       0   100  200  300  400  500  600  800ms     
+
+Characteristics:
+  • Rapid initial acceleration (spring pulls hard)
+  • Smooth deceleration as it approaches target
+  • Small overshoot (~10px) due to low damping
+  • Quick correction back to rest position
+  • Total settle time: ~600-800ms
+
+
+════════════════════════════════════════════════════════════════════════════
+  COMPARISON: DIFFERENT ANIMATION STYLES
+════════════════════════════════════════════════════════════════════════════
+
+1. STANDARD SLIDE (Linear)
+   ┌────────┐                              
+   │   WS   │──────────────────────────►   
+   └────────┘                              
+   • Constant velocity
+   • No overshoot
+   • Feels robotic
+
+2. EASE-OUT (Bezier)
+   ┌────────┐                              
+   │   WS   │─────────____                
+   └────────┘              ───────────►    
+   • Fast start, slow end
+   • No overshoot
+   • Feels smooth but lacks life
+
+3. COVER/STACK (Spring - THIS IMPLEMENTATION)
+   ┌────────┐                              
+   │   WS   │────────_____                
+   └────────┘             ──●─●─●────►    
+                            ▲ Overshoot
+   • Natural acceleration
+   • Slight overshoot (bouncy)
+   • Feels organic and lively
+   • Old workspace stays partially visible
+
+
+════════════════════════════════════════════════════════════════════════════
+  KEY IMPLEMENTATION NOTES
+════════════════════════════════════════════════════════════════════════════
+
+1. Z-INDEX IS CRITICAL
+   ✓ Entering workspace MUST have higher z than exiting
+   ✗ Don't rely on render order - explicitly set z values
+   
+2. STATE TRACKING
+   ✓ Track both current AND previous workspace IDs
+   ✗ Don't assume only "active" state - need transitional states
+   
+3. SPRING PHYSICS
+   ✓ Use SpringAnimation, not NumberAnimation with easing
+   ✗ Don't use easing.type: Easing.OutBack as spring substitute
+   
+4. PARTIAL EXIT
+   ✓ Old workspace slides to -20%, not -100%
+   ✗ Don't make it disappear completely - keeps context
+   
+5. CLIP BOUNDARIES
+   ✓ Parent container needs clip: true
+   ✗ Otherwise workspaces render outside bounds during transition
+
+6. CANVAS REFRESH
+   ✓ Call requestPaint() when colors/state change
+   ✗ Canvas won't auto-update on property changes
+
+
+════════════════════════════════════════════════════════════════════════════
+  END OF TRANSITION FLOW DIAGRAM
+════════════════════════════════════════════════════════════════════════════
