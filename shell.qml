@@ -27,6 +27,7 @@ import qs.modules.ii.stickyNotes
 import qs.modules.ii.overlay
 import qs.modules.ii.verticalBar
 import qs.modules.ii.wallpaperSelector
+import qs.modules.ii.taskManager
 
 import qs.modules.waffle.actionCenter
 import qs.modules.waffle.background
@@ -114,6 +115,10 @@ ShellRoot {
         active: true
         source: "modules/ii/overview/PiixidentWindowSwitcher.qml"
         onLoaded: item.objectName = "windowSwitcher"
+    }
+
+    TaskManagerPopup {
+        id: taskManagerPopup
     }
 
     PanelLoader { identifier: "wActionCenter"; component: WaffleActionCenter {} }
