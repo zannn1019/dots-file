@@ -182,7 +182,7 @@ Scope {
 
         appRunner.command = ["setsid", "-f", "sh", "-c", cmd];
         appRunner.running = true;
-        appLauncher.showing = false;
+        GlobalStates.overviewOpen = false;
     }
 
     // Show/hide lifecycle (reset search, load freq data, rebuild cache)
@@ -198,6 +198,11 @@ Scope {
             else
                 updateFilteredModel();
         } else {
+            // Stop timers FIRST to prevent race condition:
+            // if cardShowTimer fires after cardVisible=false, it sets cardVisible=true,
+            // which means next open sees it already true and the fade-in never restarts.
+            cardShowTimer.stop();
+            focusTimer.stop();
             cardVisible = false;
             searchText = "";
             searchInput.text = "";
@@ -375,7 +380,7 @@ Scope {
         exclusionMode: ExclusionMode.Ignore
         Keys.onPressed: (event) => {
             if (event.key === Qt.Key_Escape) {
-                appLauncher.showing = false;
+                GlobalStates.overviewOpen = false;
                 event.accepted = true;
             }
         }
@@ -393,7 +398,7 @@ Scope {
             onCleared: () => {
                 console.log("[AppLauncher] HyprlandFocusGrab cleared");
                 if (appLauncher.cardVisible)
-                    appLauncher.showing = false;
+                    GlobalStates.overviewOpen = false;
 
             }
         }
@@ -415,16 +420,23 @@ Scope {
 
         MouseArea {
             anchors.fill: parent
-            z: -1 // Behind the card
+            // z: 5 puts this ABOVE sliceListView (z: 0) but BELOW cardContainer (z: 10)
+            // so the background dim area receives clicks, but filter bar / slice area
+            // still pass events downward via mouse.accepted = false
+            z: 5
             onClicked: function(mouse) {
-                // Only close if click is outside the card area
                 var cardX = cardContainer.x;
                 var cardY = cardContainer.y;
                 var cardW = cardContainer.width;
                 var cardH = cardContainer.height;
-                if (mouse.x < cardX || mouse.x > cardX + cardW || mouse.y < cardY || mouse.y > cardY + cardH)
-                    appLauncher.showing = false;
-
+                var inCard = mouse.x >= cardX && mouse.x <= cardX + cardW &&
+                             mouse.y >= cardY && mouse.y <= cardY + cardH;
+                if (inCard) {
+                    // Pass the event through to slices / filter bar below us
+                    mouse.accepted = false;
+                } else {
+                    GlobalStates.overviewOpen = false;
+                }
             }
         }
 
@@ -595,7 +607,7 @@ Scope {
                                 appLauncher.launchApp(app.exec, app.terminal, app.name);
                             }
                         }
-                        Keys.onEscapePressed: appLauncher.showing = false
+                        Keys.onEscapePressed: GlobalStates.overviewOpen = false
 
                         Text {
                             anchors.fill: parent
@@ -711,7 +723,7 @@ Scope {
             }
             Keys.onPressed: (event) => {
                 if (event.key === Qt.Key_Escape) {
-                    appLauncher.showing = false;
+                    GlobalStates.overviewOpen = false;
                     event.accepted = true;
                     return ;
                 }
@@ -753,6 +765,25 @@ Scope {
 
                     event.accepted = true;
                     return ;
+                }
+            }
+
+            // ── Scroll-wheel navigation ──────────────────────────────
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: (event) => {
+                    // Support both vertical and horizontal scroll
+                    var delta = Math.abs(event.angleDelta.x) > Math.abs(event.angleDelta.y)
+                               ? -event.angleDelta.x
+                               : event.angleDelta.y;
+                    if (delta < 0) {
+                        if (sliceListView.currentIndex < filteredModel.count - 1)
+                            sliceListView.currentIndex++;
+                    } else if (delta > 0) {
+                        if (sliceListView.currentIndex > 0)
+                            sliceListView.currentIndex--;
+                    }
+                    event.accepted = true;
                 }
             }
 
@@ -925,40 +956,48 @@ Scope {
 
                     }
 
-                    // App icon (center) when no thumbnail
+                    // App icon — shown big and prominent when no thumbnail
                     Item {
                         anchors.centerIn: parent
-                        width: delegateItem.isCurrent ? 128 : 64
+                        width: delegateItem.isCurrent ? 192 : 72
                         height: width
                         visible: !thumbImage.visible || thumbImage.status !== Image.Ready
+
+                        // Outer glow ring
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: parent.width + 16
+                            height: parent.height + 16
+                            radius: (parent.width + 16) / 2
+                            color: "transparent"
+                            border.width: delegateItem.isCurrent ? 2 : 0
+                            border.color: appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.35) : Qt.rgba(1, 1, 1, 0.25)
+                            Behavior on border.width { NumberAnimation { duration: 200 } }
+                        }
 
                         Rectangle {
                             anchors.centerIn: parent
                             width: parent.width
                             height: parent.height
-                            radius: 16
-                            color: Qt.rgba(0, 0, 0, 0.6)
-                            border.width: 2
-                            border.color: appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.5) : Qt.rgba(1, 1, 1, 0.3)
+                            radius: parent.width * 0.22
+                            color: Qt.rgba(0, 0, 0, delegateItem.isCurrent ? 0.5 : 0.7)
+                            border.width: 1.5
+                            border.color: appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, delegateItem.isCurrent ? 0.6 : 0.25) : Qt.rgba(1, 1, 1, 0.2)
 
                             Image {
                                 anchors.fill: parent
-                                anchors.margins: 12
+                                anchors.margins: parent.width * 0.14
                                 source: model.iconPath ? "file://" + model.iconPath : (model.icon ? "image://icon/" + model.icon : "")
                                 fillMode: Image.PreserveAspectFit
                                 smooth: true
+                                mipmap: true
                                 asynchronous: true
                             }
-
                         }
 
                         Behavior on width {
-                            NumberAnimation {
-                                duration: 200
-                            }
-
+                            NumberAnimation { duration: 220; easing.type: Easing.OutBack; easing.overshoot: 0.8 }
                         }
-
                     }
 
                     layer.effect: MultiEffect {
@@ -1157,7 +1196,8 @@ Scope {
 
                 }
 
-                // Mouse interaction (hover selects, click launches)
+                // Mouse area: click once to select, click again (when current) to launch
+                // Hover navigation removed — use scroll wheel or arrow keys instead.
                 MouseArea {
                     id: itemMouseArea
 
@@ -1165,17 +1205,6 @@ Scope {
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton
                     cursorShape: Qt.PointingHandCursor
-                    onPositionChanged: function(mouse) {
-                        var globalPos = mapToItem(sliceListView, mouse.x, mouse.y);
-                        var dx = Math.abs(globalPos.x - sliceListView.lastMouseX);
-                        var dy = Math.abs(globalPos.y - sliceListView.lastMouseY);
-                        if (dx > 2 || dy > 2) {
-                            sliceListView.lastMouseX = globalPos.x;
-                            sliceListView.lastMouseY = globalPos.y;
-                            sliceListView.keyboardNavActive = false;
-                            sliceListView.currentIndex = index;
-                        }
-                    }
                     onClicked: function(mouse) {
                         console.log("[AppLauncher] Delegate clicked! Current:", delegateItem.isCurrent, "Model:", model.name);
                         if (delegateItem.isCurrent) {
@@ -1243,7 +1272,7 @@ Scope {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: appLauncher.showing = false
+                onClicked: GlobalStates.overviewOpen = false
             }
 
             FocusScope {
@@ -1251,7 +1280,7 @@ Scope {
                 focus: appLauncher.showing && !isMainMonitor
                 Keys.onPressed: (event) => {
                     if (event.key === Qt.Key_Escape) {
-                        appLauncher.showing = false;
+                        GlobalStates.overviewOpen = false;
                         event.accepted = true;
                         return ;
                     }

@@ -170,8 +170,12 @@ Scope {
     onShowingChanged: {
         if (showing)
             cardShowTimer.restart();
-        else
+        else {
+            // Stop timer before hiding to prevent race where timer fires
+            // after cardVisible=false and sets it back to true
+            cardShowTimer.stop();
             cardVisible = false;
+        }
     }
 
     Process {
@@ -448,6 +452,24 @@ Scope {
                 height: 1
             }
 
+            // ── Scroll-wheel navigation ──────────────────────────────
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: (event) => {
+                    var delta = Math.abs(event.angleDelta.x) > Math.abs(event.angleDelta.y)
+                               ? -event.angleDelta.x
+                               : event.angleDelta.y;
+                    if (delta < 0) {
+                        if (sliceListView.currentIndex < filteredModel.count - 1)
+                            sliceListView.currentIndex++;
+                    } else if (delta > 0) {
+                        if (sliceListView.currentIndex > 0)
+                            sliceListView.currentIndex--;
+                    }
+                    event.accepted = true;
+                }
+            }
+
             // Parallelogram slice delegate
             delegate: Item {
                 id: delegateItem
@@ -575,41 +597,53 @@ Scope {
 
                     }
 
+                    // ─ Live window preview via ScreencopyView ───────────
+                    // Match this window's address to a Hyprland toplevel
+                    property var matchedToplevel: {
+                        var all = Hyprland.toplevels.values;
+                        for (var i = 0; i < all.length; i++) {
+                            if (all[i].address === model.winId)
+                                return all[i].toplevel;
+                        }
+                        return null;
+                    }
+
+                    ScreencopyView {
+                        id: livePreview
+                        anchors.fill: parent
+                        captureSource: windowSwitcher.showing && imageContainer.matchedToplevel
+                                       ? imageContainer.matchedToplevel : null
+                        live: delegateItem.isCurrent
+                        visible: status === ScreencopyView.Ready
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                        }
+                    }
+
+                    // App icon — shown when no live preview available
                     Text {
                         id: bigIcon
 
-                        property int iconSize: delegateItem.isCurrent ? 96 : 48
+                        property int iconSize: delegateItem.isCurrent ? 160 : 56
 
                         anchors.centerIn: parent
                         anchors.verticalCenterOffset: -20
                         text: windowSwitcher.getIcon(model.appId)
                         font.pixelSize: iconSize
                         font.family: Style.fontFamilyMono
-                        opacity: windowThumb.visible ? 0.7 : 1
+                        opacity: (livePreview.visible && livePreview.status === ScreencopyView.Ready) ? 0 : 1
                         color: delegateItem.isCurrent ? (windowSwitcher.colors ? windowSwitcher.colors.primary : "#4fc3f7") : Qt.rgba(windowSwitcher.colors ? windowSwitcher.colors.tertiary.r : 0.55, windowSwitcher.colors ? windowSwitcher.colors.tertiary.g : 0.79, windowSwitcher.colors ? windowSwitcher.colors.tertiary.b : 1, 0.5)
 
                         Behavior on opacity {
-                            NumberAnimation {
-                                duration: 200
-                            }
-
+                            NumberAnimation { duration: 200 }
                         }
-
                         Behavior on iconSize {
-                            NumberAnimation {
-                                duration: 200
-                                easing.type: Easing.OutQuad
-                            }
-
+                            NumberAnimation { duration: 220; easing.type: Easing.OutBack; easing.overshoot: 0.8 }
                         }
-
                         Behavior on color {
-                            ColorAnimation {
-                                duration: 200
-                            }
-
+                            ColorAnimation { duration: 200 }
                         }
-
                     }
 
                     layer.effect: MultiEffect {

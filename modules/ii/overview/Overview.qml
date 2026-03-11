@@ -17,7 +17,7 @@ Scope {
     property bool dontAutoCancelSearch: false
     
     // Toggle between traditional search and piixident app launcher
-    property bool usePiixidentLauncher: false
+    property bool usePiixidentLauncher: true
     
     // Color adapter for piixident launcher
     property var piixidentColors: ({
@@ -93,7 +93,11 @@ Scope {
                         if (!overviewScope.dontAutoCancelSearch) {
                             searchWidget.cancelSearch();
                         }
-                        delayedGrabTimer.start();
+                        // Only activate the traditional focus grab when the
+                        // Piixident launcher is NOT in use — otherwise it
+                        // steals focus from the visible launcherPanel.
+                        if (!overviewScope.usePiixidentLauncher)
+                            delayedGrabTimer.start();
                     }
                 }
             }

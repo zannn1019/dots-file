@@ -63,12 +63,25 @@ Item {
             anchors.margins: sidebarPadding
             spacing: sidebarPadding
 
+            // System header row
             SystemButtonRow {
                 Layout.fillHeight: false
                 Layout.fillWidth: true
-                // Layout.margins: 10
                 Layout.topMargin: 5
                 Layout.bottomMargin: 0
+            }
+
+            // Glowing accent divider
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: "transparent" }
+                    GradientStop { position: 0.3; color: Qt.alpha(Appearance.colors.colPrimary, 0.5) }
+                    GradientStop { position: 0.7; color: Qt.alpha(Appearance.colors.colPrimary, 0.5) }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
             }
 
             Loader {

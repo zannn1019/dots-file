@@ -60,6 +60,21 @@ Scope {
             }
 
             sourceComponent: SidebarRightContent {}
+
+            // ── Slide + fade in/out ──────────────────────────────
+            opacity: GlobalStates.sidebarRightOpen ? 1 : 0
+            Behavior on opacity {
+                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+            }
+
+            x: GlobalStates.sidebarRightOpen ? 0 : sidebarWidth * 0.18
+            Behavior on x {
+                NumberAnimation {
+                    duration: 360
+                    easing.type: Easing.OutBack
+                    easing.overshoot: 0.5
+                }
+            }
         }
 
 
