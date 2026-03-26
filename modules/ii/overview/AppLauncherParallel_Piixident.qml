@@ -173,7 +173,7 @@ Scope {
 
     // Launch an app, record selection for search ranking
     function launchApp(appExec, isTerminal, appName) {
-        console.log("hello world")
+        console.log("hello world");
         if (appName)
             recordSelection(appName);
 
@@ -264,7 +264,7 @@ Scope {
             appLauncher.cacheLoading = false;
             appModel.clear();
             loadApps.running = false; // Reset state first
-            loadApps.running = true;  // Trigger reload
+            loadApps.running = true; // Trigger reload
         }
 
         stdout: SplitParser {
@@ -421,6 +421,8 @@ Scope {
         }
 
         MouseArea {
+            // Pass the event through to slices / filter bar below us
+
             anchors.fill: parent
             // z: 5 puts this ABOVE sliceListView (z: 0) but BELOW cardContainer (z: 10)
             // so the background dim area receives clicks, but filter bar / slice area
@@ -431,14 +433,11 @@ Scope {
                 var cardY = cardContainer.y;
                 var cardW = cardContainer.width;
                 var cardH = cardContainer.height;
-                var inCard = mouse.x >= cardX && mouse.x <= cardX + cardW &&
-                             mouse.y >= cardY && mouse.y <= cardY + cardH;
-                if (inCard) {
-                    // Pass the event through to slices / filter bar below us
+                var inCard = mouse.x >= cardX && mouse.x <= cardX + cardW && mouse.y >= cardY && mouse.y <= cardY + cardH;
+                if (inCard)
                     mouse.accepted = false;
-                } else {
+                else
                     GlobalStates.overviewOpen = false;
-                }
             }
         }
 
@@ -523,6 +522,10 @@ Scope {
                                 "filter": "steam",
                                 "icon": "󰓓",
                                 "label": "Steam"
+                            }, {
+                                "filter": "clipboard",
+                                "icon": "󰓓",
+                                "label": "Clipboard"
                             }]
 
                             Rectangle {
@@ -775,15 +778,15 @@ Scope {
                 acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                 onWheel: (event) => {
                     // Support both vertical and horizontal scroll
-                    var delta = Math.abs(event.angleDelta.x) > Math.abs(event.angleDelta.y)
-                               ? -event.angleDelta.x
-                               : event.angleDelta.y;
+                    var delta = Math.abs(event.angleDelta.x) > Math.abs(event.angleDelta.y) ? -event.angleDelta.x : event.angleDelta.y;
                     if (delta < 0) {
                         if (sliceListView.currentIndex < filteredModel.count - 1)
                             sliceListView.currentIndex++;
+
                     } else if (delta > 0) {
                         if (sliceListView.currentIndex > 0)
                             sliceListView.currentIndex--;
+
                     }
                     event.accepted = true;
                 }
@@ -974,7 +977,14 @@ Scope {
                             color: "transparent"
                             border.width: delegateItem.isCurrent ? 2 : 0
                             border.color: appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.35) : Qt.rgba(1, 1, 1, 0.25)
-                            Behavior on border.width { NumberAnimation { duration: 200 } }
+
+                            Behavior on border.width {
+                                NumberAnimation {
+                                    duration: 200
+                                }
+
+                            }
+
                         }
 
                         Rectangle {
@@ -995,11 +1005,18 @@ Scope {
                                 mipmap: true
                                 asynchronous: true
                             }
+
                         }
 
                         Behavior on width {
-                            NumberAnimation { duration: 220; easing.type: Easing.OutBack; easing.overshoot: 0.8 }
+                            NumberAnimation {
+                                duration: 220
+                                easing.type: Easing.OutBack
+                                easing.overshoot: 0.8
+                            }
+
                         }
+
                     }
 
                     layer.effect: MultiEffect {

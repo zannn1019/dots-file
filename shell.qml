@@ -117,6 +117,7 @@ ShellRoot {
         onLoaded: item.objectName = "windowSwitcher"
     }
 
+
     TaskManagerPopup {
         id: taskManagerPopup
     }

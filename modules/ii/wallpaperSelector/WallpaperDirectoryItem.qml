@@ -77,9 +77,11 @@ Item {
             active: root.useThumbnail
             sourceComponent: ThumbnailImage {
                 id: thumbImg
-                generateThumbnail: false
+                generateThumbnail: true
                 sourcePath: fileModelData.filePath
-                cache: false
+                cache: true
+                sourceSize.width: root.width
+                sourceSize.height: root.height
                 fillMode: Image.PreserveAspectCrop
                 clip: true
                 Connections {

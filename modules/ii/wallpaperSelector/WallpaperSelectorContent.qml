@@ -285,9 +285,11 @@ Item {
                         anchors { left: parent.left; right: parent.right; top: parent.top }
                         height: parent.height - infoBar.height
                         visible: !root.currentIsVideo
-                        generateThumbnail: false
+                        generateThumbnail: true
                         sourcePath: (!root.currentIsVideo && root.currentPath.length > 0) ? root.currentPath : ""
-                        cache: false
+                        cache: true
+                        sourceSize.width: root.popupW
+                        sourceSize.height: root.popupH
                         fillMode: Image.PreserveAspectCrop
                         clip: true
                         Connections {

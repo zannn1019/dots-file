@@ -17,7 +17,7 @@ Scope {
     property bool dontAutoCancelSearch: false
     
     // Toggle between traditional search and piixident app launcher
-    property bool usePiixidentLauncher: true
+    property bool usePiixidentLauncher: false
     
     // Color adapter for piixident launcher
     property var piixidentColors: ({
