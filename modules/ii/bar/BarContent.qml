@@ -32,7 +32,6 @@ Item {
     property var lyricsData: []
     property string lyricState: "CLEAR"
     property string currentLyricText: ""
-    property string currentLyricFormatted: ""
     readonly property bool isSpotify: MprisController.activePlayer?.dbusName.includes("spotify") ?? false
 
     Process {
@@ -64,7 +63,7 @@ Item {
                         
                         // Inform the user if highlighting is available for this song
                         let hasWords = root.lyricsData.some(l => l.words && l.words.length > 0);
-                        notifySync.msg = hasWords ? "Word-level sync: ON" : "Word-level sync: OFF (Line only)";
+                        notifySync.msg = hasWords ? "Lyrics found: ON" : "Lyrics found: OFF";
                         notifySync.running = false;
                         notifySync.running = true;
                     } catch (e) {
@@ -75,9 +74,10 @@ Item {
         }
     }
 
-    property real lastMprisPos: 0
-    property real lastMprisUpdate: 0
+    property real anchorMprisTime: 0
+    property real anchorWallClockTime: 0
     property int lyricsOffsetMs: 200 // Default to 200ms (scroll on center pill to tune manually)
+    property int driftThresholdMs: 1500 // Rule 2: Widen threshold to 1500ms
 
     property bool showingOffset: false
     Timer {
@@ -95,15 +95,31 @@ Item {
     Connections {
         target: MprisController
         function onActivePlayerChanged() {
-            root.lastMprisPos = 0
-            root.lastMprisUpdate = Date.now()
+            root.anchorMprisTime = 0
+            root.anchorWallClockTime = Date.now()
+        }
+    }
+
+    // Rule 3: Strict Event Anchoring
+    Connections {
+        target: MprisController.activePlayer
+        ignoreUnknownSignals: true
+        
+        function onPlaybackStateChanged() {
+            root.anchorMprisTime = MprisController.activePlayer.position
+            root.anchorWallClockTime = Date.now()
+        }
+        
+        function onMetadataChanged() {
+            root.anchorMprisTime = MprisController.activePlayer.position
+            root.anchorWallClockTime = Date.now()
         }
     }
 
     Timer {
         id: lyricTimer
         interval: 32 // Higher refresh (approx 30fps) for buttery smooth interpolation
-        running: root.isSpotify && MprisController.activePlayer?.isPlaying && root.lyricState === "FOUND"
+        running: MprisController.activePlayer?.isPlaying && root.lyricState === "FOUND"
         repeat: true
         onTriggered: {
             if (!MprisController.activePlayer) return;
@@ -111,23 +127,21 @@ Item {
             let mprisPos = MprisController.activePlayer.position;
             let now = Date.now();
 
-            // Detect when the MPRIS position actually changes (polling usually happens every 500ms-1s)
-            // Or if the gap between now and last update is suspiciously large (e.g. after a pause/freeze)
-            let drift = (now - root.lastMprisUpdate);
-            if (mprisPos !== root.lastMprisPos || drift > 2000) {
-                root.lastMprisPos = mprisPos;
-                root.lastMprisUpdate = now;
+            // Rule 1: Use Delta Time logic
+            let elapsedSinceAnchor = (now - root.anchorWallClockTime) / 1000;
+            let currentPos = root.anchorMprisTime + elapsedSinceAnchor;
+
+            // Rule 2: Loose Anchoring (1500ms threshold)
+            let driftMs = Math.abs(mprisPos - currentPos) * 1000;
+            
+            if (driftMs > root.driftThresholdMs || root.anchorWallClockTime === 0) {
+                root.anchorMprisTime = mprisPos;
+                root.anchorWallClockTime = now;
+                currentPos = mprisPos;
             }
 
-            // Interpolate the "real" time based on the last update and wall-clock time
-            let elapsedSec = (now - root.lastMprisUpdate) / 1000;
-            // Clamp elapsedSec to prevent massive jumps if the system clock hangs
-            if (elapsedSec > 2.0) elapsedSec = 0; 
-            
-            let smoothedPosSec = root.lastMprisPos + elapsedSec;
-
             // Apply global offset
-            let posMs = (smoothedPosSec * 1000) + root.lyricsOffsetMs;
+            let posMs = (currentPos * 1000) + root.lyricsOffsetMs;
             let foundLine = null;
             for (let i = 0; i < root.lyricsData.length; i++) {
                 let line = root.lyricsData[i];
@@ -139,27 +153,12 @@ Item {
             
             if (foundLine) {
                 root.currentLyricText = foundLine.text;
-                
-                // Spotify-style word highlighting
-                if (foundLine.words && foundLine.words.length > 0) {
-                    let richText = "";
-                    for (let i = 0; i < foundLine.words.length; i++) {
-                        let w = foundLine.words[i];
-                        let isActive = posMs >= w.start;
-                        // Use pure white for active and a muted gray for future for maximum contrast
-                        let hexColor = isActive ? "#FFFFFF" : "#555555";
-                        richText += `<font color="${hexColor}">${w.word}</font> `;
-                    }
-                    root.currentLyricFormatted = richText.trim();
-                } else {
-                    root.currentLyricFormatted = foundLine.text;
-                }
             } else {
                 root.currentLyricText = "";
-                root.currentLyricFormatted = "";
             }
         }
     }
+
 
     property string centerDisplayText: {
         if (root.showingOffset) {
@@ -173,11 +172,10 @@ Item {
             let trackInfo = `${player.trackTitle || "Unknown"} — ${player.trackArtist || "Unknown"}`;
             
             if (root.lyricState === "FOUND" && root.currentLyricText !== "") {
-                text = root.currentLyricFormatted;
+                text = root.currentLyricText;
             } else if (root.lyricState === "SEARCHING") {
                 text = "Searching lyrics... " + trackInfo;
             } else {
-                // NOLYRICS or CLEAR but stopped? If player is playing but no lyrics, fallback to info.
                 text = trackInfo;
             }
         }
