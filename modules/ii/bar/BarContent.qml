@@ -383,6 +383,66 @@ Item {
             anchors.centerIn: parent
             spacing: 10
 
+            RowLayout {
+                id: earbudBatteryRow
+                visible: BluetoothStatus.connected && BluetoothStatus.firstActiveDevice?.batteryAvailable
+                spacing: 6
+                
+                MaterialSymbol {
+                    text: (BluetoothStatus.firstActiveDevice?.battery || 0) < 0.2 ? "headset_off" : "headset"
+                    iconSize: Appearance.font.pixelSize.normal
+                    color: (BluetoothStatus.firstActiveDevice?.battery || 0) < 0.2 ? Appearance.m3colors.m3error : Appearance.colors.colOnLayer0
+                }
+
+                RowLayout {
+                    spacing: 4
+                    
+                    Item {
+                        implicitWidth: 30
+                        implicitHeight: 15
+                        property bool hovered: leftProgress.hovered
+                        
+                        ClippedProgressBar {
+                            id: leftProgress
+                            anchors.fill: parent
+                            value: BluetoothStatus.firstActiveDevice?.batteryLeft || BluetoothStatus.firstActiveDevice?.battery || 0
+                            valueBarWidth: 30
+                            valueBarHeight: 15
+                            highlightColor: value < 0.2 ? Appearance.m3colors.m3error : Appearance.colors.colOnSecondaryContainer
+                            text: "L"
+                            font.pixelSize: 10
+                            font.weight: Font.Bold
+                        }
+
+                        StyledToolTip {
+                            text: "Left: " + Math.round(leftProgress.value * 100) + "%"
+                        }
+                    }
+
+                    Item {
+                        implicitWidth: 30
+                        implicitHeight: 15
+                        property bool hovered: rightProgress.hovered
+                        
+                        ClippedProgressBar {
+                            id: rightProgress
+                            anchors.fill: parent
+                            value: BluetoothStatus.firstActiveDevice?.batteryRight || BluetoothStatus.firstActiveDevice?.battery || 0
+                            valueBarWidth: 30
+                            valueBarHeight: 15
+                            highlightColor: value < 0.2 ? Appearance.m3colors.m3error : Appearance.colors.colOnSecondaryContainer
+                            text: "R"
+                            font.pixelSize: 10
+                            font.weight: Font.Bold
+                        }
+
+                        StyledToolTip {
+                            text: "Right: " + Math.round(rightProgress.value * 100) + "%"
+                        }
+                    }
+                }
+            }
+
             MaterialSymbol {
                 text:     "sync"
                 iconSize: Appearance.font.pixelSize.large
